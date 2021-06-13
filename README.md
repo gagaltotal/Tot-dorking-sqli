@@ -1,7 +1,9 @@
-# Tot-dorking-sqli
+# Tot-dorking-SQLi GNU/Linux
 #### Version 0.0.1 ####
 #### Gagaltotal.github.io ####
 #### Mr.Gagaltotal666 | Mr.GhostGTR666 ####
+
+![Screen Capture](https://raw.githubusercontent.com/gagaltotal/Tot-dorking-sqli/master/tot-dorking-sql.png)
 
 ### installation package use Perl ####
 
