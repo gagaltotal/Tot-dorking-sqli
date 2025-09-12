@@ -17,6 +17,8 @@ sudo apt install perl
 sudo pacman -Sy perl
 ```
 
+![Screen Capture](https://raw.githubusercontent.com/gagaltotal/Tot-dorking-sqli/refs/heads/master/tot-dorking-sql-v1.png)
+
 ## Use Tot-Dorking-SQLi
 
 ```sh
@@ -29,6 +31,8 @@ sudo pacman -Sy perl
 ```
 
 ## Perubahan versi 2.0.0 :
+
+![Screen Capture](https://raw.githubusercontent.com/gagaltotal/Tot-dorking-sqli/refs/heads/master/tot-dorking-sql-v2.png)
 
 1. Enhanced SQLi Detection:
 
