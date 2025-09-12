@@ -1,9 +1,7 @@
-# Tot-dorking-SQLi GNU/Linux
-#### Version 0.0.1 ####
+# Tot-dorking-sqli
+#### Version 2.0.0 ####
 #### Gagaltotal.github.io ####
-#### Mr.Gagaltotal666 | Mr.GhostGTR666 ####
-
-![Screen Capture](https://raw.githubusercontent.com/gagaltotal/Tot-dorking-sqli/master/tot-dorking-sql.png)
+#### Gagaltotal666 | GhostGTR666 ####
 
 ### installation package use Perl ####
 
@@ -29,3 +27,38 @@ sudo pacman -Sy perl
 - perl tot.pl -l links.txt -f link-vlunSQL.txt
 - perl tot.pl -l links.txt
 ```
+
+## Perubahan versi 2.0.0 :
+
+1. Enhanced SQLi Detection:
+
+- Menambahkan multiple SQLi payloads untuk berbagai jenis database
+- Mendeteksi error-based, time-based, dan boolean-based SQLi
+- Support untuk MySQL, Oracle, SQL Server, dan lainnya
+- Improved Search Capabilities:
+- Pattern matching yang lebih baik untuk hasil pencarian
+- Support untuk berbagai jenis parameter (PHP, ASP, JSP)
+- Penanganan URL encoding yang lebih baik
+
+2. Anti-Detection Features:
+
+- Delay antara requests untuk menghindari blokir
+- Rotasi user agent secara acak
+- Support proxy dengan authentication
+
+3. Threading System:
+
+- Multi-threading untuk scanning yang lebih cepat
+- Kontrol jumlah thread maksimal
+
+4. Enhanced Output:
+
+- Warna dan formatting yang lebih baik
+- Klasifikasi jenis SQLi yang ditemukan
+- Informasi yang lebih detail tentang vulnerability
+
+5. Additional Options:
+
+- Parameter tambahan untuk user agent custom
+- Delay configurable antara requests
+- Control jumlah thread
